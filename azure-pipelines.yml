@@ -1,0 +1,46 @@
+# Node.js with React
+# Build a Node.js project that uses React.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    npm ci
+    npm run build
+  workingDirectory: my-app
+  displayName: 'npm install and build'
+
+- script: |
+    npx cypress verify
+  workingDirectory: my-app
+  displayName: 'Verify cypress'
+
+- script: |
+    npm run start-server-and-test:silent
+  workingDirectory: my-app
+  displayName: 'Start server and launch cypress tests'
+
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)/my-app/cypress/videos'
+    Contents: '**'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)/cypress-videos'
+    CleanTargetFolder: true
+    OverWrite: true
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/cypress-videos'
+    ArtifactName: 'cypress-videos'
+    publishLocation: 'Container'
